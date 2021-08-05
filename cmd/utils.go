@@ -64,9 +64,14 @@ func spawn(command string, args ...string) {
 	}
 
 	err := cmd.Run()
-	if ee, ok := err.(*exec.ExitError); ok {
-		os.Exit(ee.ExitCode())
+	if err != nil {
+		if ee, ok := err.(*exec.ExitError); ok {
+			os.Exit(ee.ExitCode())
+		}
+		fmt.Fprintf(os.Stderr, "%v", err)
+		os.Exit(1)
 	}
+
 }
 
 // mustOutput is like getOutput, but aborts the process with fatal if the
