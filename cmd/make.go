@@ -1,20 +1,36 @@
 package cmd
 
 import (
+	"path"
+	"path/filepath"
+
 	"github.com/spf13/cobra"
 )
 
 func doMake(cmd *cobra.Command, args []string) error {
-	path := findGitRoot(".")
-	container := searchContainer(path, true)
+	root := findGitRoot(".")
+	container := searchContainer(root, true)
 
-	args = append([]string{
+	// Reconstruct the relative path within the git root, so that it can be
+	// set as working directory in the docker container. If this fails,
+	// just avoid setting a working directory and hope for the best.
+	workdir := "/app"
+	abspwd, err := filepath.Abs(".")
+	if err == nil {
+		reldir, err := filepath.Rel(root, abspwd)
+		if err == nil {
+			workdir = path.Join(workdir, filepath.ToSlash(reldir))
+		}
+	}
+
+	docker_args := []string{
 		"exec",
+		"--workdir", workdir,
 		container,
-		"make"},
-		args...)
+		"make"}
+	docker_args = append(docker_args, args...)
 
-	spawn("docker", args...)
+	spawn("docker", docker_args...)
 	return nil
 }
 
