@@ -48,8 +48,8 @@ func searchContainer(path string, autostart bool) string {
 	// Start a new container
 	out = mustOutput("docker", "run",
 		"-e", "IS_DOCKER=true",
-		"-d",                                               // detached
-		"--mount", "type=bind,source="+path+",target=/app", // mount
+		"-d",                                                       // detached
+		"--mount", "type=bind,source="+path+",target="+VOLUME_ROOT, // mount
 		"-w", "/app", // working dir
 		DOCKER_IMAGE,
 		"tail", "-f", "/dev/null",

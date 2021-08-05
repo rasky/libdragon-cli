@@ -14,7 +14,7 @@ func doMake(cmd *cobra.Command, args []string) error {
 	// Reconstruct the relative path within the git root, so that it can be
 	// set as working directory in the docker container. If this fails,
 	// just avoid setting a working directory and hope for the best.
-	workdir := "/app"
+	workdir := VOLUME_ROOT
 	abspwd, err := filepath.Abs(".")
 	if err == nil {
 		reldir, err := filepath.Rel(root, abspwd)

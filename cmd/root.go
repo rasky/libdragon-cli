@@ -9,6 +9,7 @@ import (
 const (
 	DOCKER_IMAGE   = "anacierdem/libdragon"
 	CONTAINER_FILE = "libdragon-docker-container"
+	VOLUME_ROOT    = "/app"
 )
 
 var (
