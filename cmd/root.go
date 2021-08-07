@@ -7,9 +7,11 @@ import (
 )
 
 const (
-	DOCKER_IMAGE   = "anacierdem/libdragon"
-	CONTAINER_FILE = "libdragon-docker-container"
-	VOLUME_ROOT    = "/app"
+	DOCKER_IMAGE     = "anacierdem/libdragon"
+	CONTAINER_FILE   = "libdragon-docker-container"
+	VOLUME_ROOT      = "/app"
+	LIBDRAGON_GIT    = "https://github.com/DragonMinded/libdragon"
+	LIBDRAGON_BRANCH = "trunk"
 )
 
 var (

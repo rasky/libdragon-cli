@@ -5,11 +5,16 @@ import (
 	"fmt"
 	"io/fs"
 	"os"
+	"path"
+	"path/filepath"
 
 	"github.com/spf13/cobra"
 )
 
-var flagInitForce bool
+var (
+	flagInitForce         bool
+	flagInitUseSubmodules bool
+)
 
 //go:embed prj-skeleton
 var skeleton embed.FS
@@ -17,13 +22,10 @@ var skeleton embed.FS
 func doInit(cmd *cobra.Command, args []string) error {
 
 	// Check if we're inside a git repository
-	_, err := getOutput("git", "rev-parse", "--show-toplevel")
+	rootdir, err := getOutput("git", "rev-parse", "--show-toplevel")
 	if err != nil {
 		fatal("error: this command must be run within a git repository")
 	}
-
-	// Create a submodule for libdragon
-	mustRun("git", "submodule", "add", "--force", "https://github.com/DragonMinded/libdragon")
 
 	// Extract the project skeleton
 	skfs, _ := fs.Sub(skeleton, "prj-skeleton")
@@ -49,6 +51,32 @@ func doInit(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	// Create a submodule for libdragon
+	if flagInitUseSubmodules {
+		mustRun("git", "submodule", "add", "--force", "-b", LIBDRAGON_BRANCH, LIBDRAGON_GIT)
+	} else {
+		// Reconstruct relative path in repo wrt the current directory, so that
+		// we will be able to tell git subtree where to create the subtree folder.
+		prefix := "libdragon"
+		abspwd, err := filepath.Abs(".")
+		if err == nil {
+			reldir, err := filepath.Rel(rootdir[0], abspwd)
+			if err == nil {
+				prefix = path.Join(filepath.ToSlash(reldir), prefix)
+			}
+		}
+
+		// git subtree does not work on empty repository (one with zero commits). The error
+		// message is obscure. Since this is a very common case with "libdragon init",
+		// verify whether HEAD exists and if it doesn't, create an initial empty commit.
+		if _, err := getOutput("git", "rev-parse", "HEAD"); err != nil {
+			mustRun("git", "commit", "--allow-empty", "-n", "-m", "Initial commit.")
+		}
+
+		// Add the subtree
+		mustRun("git", "-C", rootdir[0], "subtree", "add", "--prefix", prefix, LIBDRAGON_GIT, LIBDRAGON_BRANCH, "--squash")
+	}
+
 	return nil
 }
 
@@ -63,5 +91,6 @@ var cmdInit = &cobra.Command{
 
 func init() {
 	cmdInit.Flags().BoolVarP(&flagInitForce, "force", "f", false, "force overwriting")
+	cmdInit.Flags().BoolVarP(&flagInitUseSubmodules, "submodule", "m", false, "to vendor libdragon, use git submodule instead of git subtree")
 	rootCmd.AddCommand(cmdInit)
 }
