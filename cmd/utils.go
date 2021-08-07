@@ -21,6 +21,14 @@ func fatal(s string, args ...interface{}) {
 	os.Exit(1)
 }
 
+func fatal_exitproc(err error, command string, args []string) {
+	fmt.Fprintf(os.Stderr, "error running command: %s %v\n", command, args)
+	if ee, ok := err.(*exec.ExitError); ok && ee.Stderr != nil {
+		fmt.Fprintf(os.Stderr, "%s", ee.Stderr)
+	}
+	fatal("%v\n", err)
+}
+
 // getOutput runs the specified command with the specified arguments,
 // and acquires its output (stdout). The output is returned as a list
 // of strings, one per line.
@@ -41,11 +49,11 @@ func getOutput(command string, args ...string) ([]string, error) {
 // is shown only if verbose.
 func run(command string, args ...string) error {
 	cmd := exec.Command(command, args...)
+	cmd.Stderr = os.Stderr
 
 	if flagVerbose {
 		fmt.Println("launching:", command, args)
 		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
 	}
 
 	return cmd.Run()
@@ -65,11 +73,7 @@ func spawn(command string, args ...string) {
 
 	err := cmd.Run()
 	if err != nil {
-		if ee, ok := err.(*exec.ExitError); ok {
-			os.Exit(ee.ExitCode())
-		}
-		fmt.Fprintf(os.Stderr, "%v", err)
-		os.Exit(1)
+		fatal_exitproc(err, command, args)
 	}
 
 }
@@ -79,10 +83,7 @@ func spawn(command string, args ...string) {
 func mustOutput(command string, args ...string) []string {
 	out, err := getOutput(command, args...)
 	if err != nil {
-		if ee, ok := err.(*exec.ExitError); ok && ee.Stderr != nil {
-			fmt.Fprintf(os.Stderr, "%s", ee.Stderr)
-		}
-		fatal("error running command: %v", err)
+		fatal_exitproc(err, command, args)
 	}
 	return out
 }
@@ -91,7 +92,7 @@ func mustOutput(command string, args ...string) []string {
 // fails its execution.
 func mustRun(command string, args ...string) {
 	if err := run(command, args...); err != nil {
-		fatal("error running command: %v", err)
+		fatal_exitproc(err, command, args)
 	}
 }
 
