@@ -6,7 +6,13 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+
+	"github.com/fatih/color"
 )
+
+func progress(s string, args ...interface{}) {
+	color.Green(s, args...)
+}
 
 // vprintf is a printf that prints only when the verbose mode is activated
 func vprintf(s string, args ...interface{}) {
@@ -17,12 +23,13 @@ func vprintf(s string, args ...interface{}) {
 
 // fatal exits the process printing a formatted message to stderr
 func fatal(s string, args ...interface{}) {
-	fmt.Fprintf(os.Stderr, s, args...)
+	color.New(color.FgHiRed).Fprintf(os.Stderr, s, args...)
 	os.Exit(1)
 }
 
 func fatal_exitproc(err error, command string, args []string) {
-	fmt.Fprintf(os.Stderr, "error running command: %s %v\n", command, args)
+	color.New(color.FgHiRed).Fprintf(os.Stderr, "error running command: ")
+	fmt.Fprintf(os.Stderr, "%s %v\n", command, args)
 	if ee, ok := err.(*exec.ExitError); ok && ee.Stderr != nil {
 		fmt.Fprintf(os.Stderr, "%s", ee.Stderr)
 	}

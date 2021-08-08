@@ -28,6 +28,7 @@ func doInit(cmd *cobra.Command, args []string) error {
 	}
 
 	// Extract the project skeleton
+	progress("Create project skeleton...\n")
 	skfs, _ := fs.Sub(skeleton, "prj-skeleton")
 	err = fs.WalkDir(skfs, ".", func(path string, d fs.DirEntry, err error) error {
 		if err == nil {
@@ -48,12 +49,16 @@ func doInit(cmd *cobra.Command, args []string) error {
 		return err
 	})
 	if err != nil {
-		return err
+		fatal("%v", err)
 	}
 
 	// Create a submodule for libdragon
+	progress("Download libdragon...\n")
 	if flagInitUseSubmodules {
-		mustRun("git", "submodule", "add", "--force", "-b", LIBDRAGON_BRANCH, LIBDRAGON_GIT)
+		spawn("git", "submodule", "add", "--force",
+			"--name", LIBDRAGON_SUBMODULE,
+			"--branch", LIBDRAGON_BRANCH,
+			LIBDRAGON_GIT)
 	} else {
 		// Reconstruct relative path in repo wrt the current directory, so that
 		// we will be able to tell git subtree where to create the subtree folder.
@@ -74,8 +79,10 @@ func doInit(cmd *cobra.Command, args []string) error {
 		}
 
 		// Add the subtree
-		mustRun("git", "-C", rootdir[0], "subtree", "add", "--prefix", prefix, LIBDRAGON_GIT, LIBDRAGON_BRANCH, "--squash")
+		spawn("git", "-C", rootdir[0], "subtree", "add", "--prefix", prefix, LIBDRAGON_GIT, LIBDRAGON_BRANCH, "--squash")
 	}
+
+	updateToolchain("libdragon")
 
 	return nil
 }
