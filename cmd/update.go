@@ -11,14 +11,12 @@ import (
 
 var (
 	flagUpdateLibdragonPath string
-	flagUpdateRev           string
 )
 
-func isDir(path string) bool {
-	fi, err := os.Stat(path)
-	return err == nil && fi.IsDir()
-}
-
+// findLibdragon searches for the libdragon vendored directory in the specified
+// git repository. In case of success, it returns the path of the directory within
+// the repo, and a boolean indicating whether the vendoring is being done via
+// submodules (the alternative being subtrees).
 func findLibdragon(repoRoot string) (string, bool) {
 	// Check if we're using submodules
 	if path, err := getOutput("git", "config",
@@ -40,6 +38,8 @@ func findLibdragon(repoRoot string) (string, bool) {
 	return "", false
 }
 
+// updateToolchain updates the docker toolchain image that will be used to compile
+// libdragon. It is a wrapper over "docker pull".
 func updateToolchain(libdragonPath string) {
 	// Check if there's a reference to the needed toolchain in libdragon, otherwise
 	// assume the latest is fine (hopefully...)
@@ -56,16 +56,38 @@ func updateToolchain(libdragonPath string) {
 func doUpdate(cmd *cobra.Command, args []string) error {
 	repoRoot := findGitRoot(".")
 
-	libdragonPath := flagUpdateLibdragonPath
-	useSubmodules := false
-	if libdragonPath == "" {
+	// Repo-relative path where libdragon is vendored
+	var libdragonPath string
+	var useSubmodules bool
+
+	if flagUpdateLibdragonPath == "" {
 		libdragonPath, useSubmodules = findLibdragon(repoRoot)
 		if libdragonPath == "" {
-			fatal("cannot find libdragon in this repository\nuse --directory to specify the location")
+			fatal("cannot find libdragon in this repository\nuse --directory to specify the location\n")
 		}
 	} else {
+		// If the directory was specified on the command line, we assume that
+		// it's a cwd-relative path (so a path that makes sense for the user
+		// in the context of where the command was launched). Convert it to
+		// absolute (if not already).
+		var err error
+		libdragonPath, err = filepath.Abs(flagUpdateLibdragonPath)
+		if err != nil {
+			fatal("error convert directory to absolute path: %v\n", err)
+		}
+		// Check if it's really an existing directory
 		if !isDir(libdragonPath) {
-			fatal("%s: not a directory", libdragonPath)
+			fatal("%s: not a directory\n", libdragonPath)
+		}
+
+		// Try to detect the vendoring strategy. Look for an existing .git
+		// file that would hint at submodule.
+		useSubmodules = isFile(filepath.Join(libdragonPath, ".git"))
+
+		// Now convert to repo-relative path.
+		libdragonPath, err = filepath.Rel(repoRoot, libdragonPath)
+		if err != nil {
+			fatal("error convert directory to repo-relative path: %v\n", err)
 		}
 	}
 
@@ -79,7 +101,7 @@ func doUpdate(cmd *cobra.Command, args []string) error {
 	// Update libdragon
 	color.Green("Updating libdragon...\n")
 	if useSubmodules {
-		spawn("git", "submodule", "update", "--remote", "--merge", libdragonPath)
+		spawn("git", "submodule", "update", "--remote", "--merge", filepath.Join(repoRoot, libdragonPath))
 	} else {
 		spawn("git", "subtree", "pull", "--prefix", libdragonPath, LIBDRAGON_GIT, LIBDRAGON_BRANCH, "--squash")
 	}
@@ -100,6 +122,5 @@ var cmdUpdate = &cobra.Command{
 
 func init() {
 	cmdUpdate.Flags().StringVarP(&flagUpdateLibdragonPath, "directory", "d", "", "specify where libdragon is located (default: autodetect)")
-	cmdUpdate.Flags().StringVarP(&flagUpdateRev, "revision", "r", "", "specify the commit/branch/tag to update libdragon to (default: update current branch)")
 	rootCmd.AddCommand(cmdUpdate)
 }

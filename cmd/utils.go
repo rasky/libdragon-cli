@@ -103,17 +103,30 @@ func mustRun(command string, args ...string) {
 	}
 }
 
+// isDir returns true if the specified path is a file
+func isFile(path string) bool {
+	fi, err := os.Stat(path)
+	return err == nil && !fi.IsDir()
+}
+
+// isDir returns true if the specified path is a directory
+func isDir(path string) bool {
+	fi, err := os.Stat(path)
+	return err == nil && fi.IsDir()
+}
+
 // findGitRoot checks whether path is part of a git repo; if so, returns its
-// root, otherwise returns path itself.
+// root, otherwise aborts via fatal
 func findGitRoot(path string) string {
 	// FIXME: we could rewrite this without relying on git in PATH for Windows
 	// users, and simply go through parent folders looking for ".git" directory.
-	rootdir1, err := getOutput("git", "rev-parse", "--show-toplevel")
-	if err == nil {
-		path, err = filepath.Abs(rootdir1[0])
-		if err != nil {
-			fatal("error getting absolute path: %v", err)
-		}
+	rootdir1, err := getOutput("git", "-C", path, "rev-parse", "--show-toplevel")
+	if err != nil {
+		fatal("error: this command must be run from a git repository\n")
+	}
+	path, err = filepath.Abs(rootdir1[0])
+	if err != nil {
+		fatal("error getting absolute path: %v", err)
 	}
 	return path
 }
