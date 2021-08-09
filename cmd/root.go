@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"os"
+	"strings"
 
 	"github.com/gookit/color"
 	"github.com/spf13/cobra"
@@ -44,6 +45,19 @@ func Execute() {
 			color.Disable()
 		}
 	})
+
+	// Colorize usage prompt
+	cobra.AddTemplateFunc("StyleHeading", color.Green.Sprint)
+	usageTemplate := rootCmd.UsageTemplate()
+	usageTemplate = strings.NewReplacer(
+		`Usage:`, `{{StyleHeading "Usage:"}}`,
+		`Examples:`, `{{StyleHeading "Examples:"}}`,
+		`Aliases:`, `{{StyleHeading "Aliases:"}}`,
+		`Available Commands:`, `{{StyleHeading "Available Commands:"}}`,
+		`Global Flags:`, `{{StyleHeading "Global Flags:"}}`,
+		`Flags:`, `{{StyleHeading "Flags:"}}`,
+	).Replace(usageTemplate)
+	rootCmd.SetUsageTemplate(usageTemplate)
 
 	if err := rootCmd.Execute(); err != nil {
 		os.Exit(1)
