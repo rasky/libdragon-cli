@@ -11,6 +11,8 @@ import (
 	"github.com/gookit/color"
 )
 
+var RestoreConsoleMode = func() {}
+
 // vprintf is a printf that prints only when the verbose mode is activated
 func vprintf(s string, args ...interface{}) {
 	if flagVerbose {
@@ -86,9 +88,11 @@ func spawn(command string, args ...string) {
 	}
 
 	err := cmd.Run()
-	if command == "git" && runtime.GOOS == "windows" {
-		// Workaround for git for windows bug
-		RestoreConsoleMode()
+	if runtime.GOOS == "windows" {
+		if command == "git" {
+			// Workaround for git for windows bug
+			RestoreConsoleMode()
+		}
 	}
 
 	if err != nil {

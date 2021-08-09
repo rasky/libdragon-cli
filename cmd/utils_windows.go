@@ -11,6 +11,7 @@ var consoleMode uint32
 func init() {
 	fd := os.Stderr.Fd()
 	windows.GetConsoleMode(windows.Handle(fd), &consoleMode)
+	RestoreConsoleMode = restoreConsoleMode
 }
 
 // RestoreConsoleMode restore the console to the same mode it had at process startup.
@@ -18,7 +19,7 @@ func init() {
 // in a different state (in particular, it disables the EnableVirtualTerminalProcessingMode=0x4
 // flag, which in turns breaks ANSI colors).
 // Reference: https://github.com/git-for-windows/git/issues/2661
-func RestoreConsoleMode() {
+func restoreConsoleMode() {
 	fd := os.Stderr.Fd()
 	windows.SetConsoleMode(windows.Handle(fd), consoleMode)
 }
