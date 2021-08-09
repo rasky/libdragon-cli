@@ -5,14 +5,11 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 
-	"github.com/fatih/color"
+	"github.com/gookit/color"
 )
-
-func progress(s string, args ...interface{}) {
-	color.Green(s, args...)
-}
 
 // vprintf is a printf that prints only when the verbose mode is activated
 func vprintf(s string, args ...interface{}) {
@@ -21,17 +18,27 @@ func vprintf(s string, args ...interface{}) {
 	}
 }
 
+func progress(s string, args ...interface{}) {
+	text := color.Green.Render(fmt.Sprintf(s, args...))
+	fmt.Fprint(os.Stdout, text)
+}
+
+func critical(s string, args ...interface{}) {
+	text := color.Red.Render(fmt.Sprintf(s, args...))
+	fmt.Fprint(os.Stderr, text)
+}
+
 // fatal exits the process printing a formatted message to stderr
 func fatal(s string, args ...interface{}) {
-	color.New(color.FgHiRed).Fprintf(os.Stderr, s, args...)
+	critical(s, args...)
 	os.Exit(1)
 }
 
 func fatal_exitproc(err error, command string, args []string) {
-	color.New(color.FgHiRed).Fprintf(os.Stderr, "error running command: ")
+	critical("error running command: ")
 	fmt.Fprintf(os.Stderr, "%s %v\n", command, args)
 	if ee, ok := err.(*exec.ExitError); ok && ee.Stderr != nil {
-		fmt.Fprintf(os.Stderr, "%s", ee.Stderr)
+		critical("%s", ee.Stderr)
 	}
 	fatal("%v\n", err)
 }
@@ -79,6 +86,11 @@ func spawn(command string, args ...string) {
 	}
 
 	err := cmd.Run()
+	if command == "git" && runtime.GOOS == "windows" {
+		// Workaround for git for windows bug
+		RestoreConsoleMode()
+	}
+
 	if err != nil {
 		fatal_exitproc(err, command, args)
 	}

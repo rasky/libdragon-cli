@@ -54,6 +54,7 @@ func doInit(cmd *cobra.Command, args []string) error {
 
 	// Create a submodule for libdragon
 	progress("Download libdragon...\n")
+
 	if flagInitUseSubmodules {
 		spawn("git", "submodule", "add", "--force",
 			"--name", LIBDRAGON_SUBMODULE,

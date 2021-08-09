@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/fatih/color"
+	"github.com/gookit/color"
 	"github.com/spf13/cobra"
 )
 
@@ -49,7 +49,7 @@ func updateToolchain(libdragonPath string) {
 	}
 
 	// Pull the image
-	color.Green("\nUpdating toolchain...\n")
+	color.Greenp("\nUpdating toolchain...\n")
 	spawn("docker", "pull", image)
 }
 
@@ -99,7 +99,7 @@ func doUpdate(cmd *cobra.Command, args []string) error {
 	}
 
 	// Update libdragon
-	color.Green("Updating libdragon...\n")
+	color.Greenp("Updating libdragon...\n")
 	if useSubmodules {
 		spawn("git", "submodule", "update", "--remote", "--merge", filepath.Join(repoRoot, libdragonPath))
 	} else {

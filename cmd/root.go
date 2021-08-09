@@ -3,7 +3,7 @@ package cmd
 import (
 	"os"
 
-	"github.com/fatih/color"
+	"github.com/gookit/color"
 	"github.com/spf13/cobra"
 )
 
@@ -41,7 +41,7 @@ func Execute() {
 			vprintf("chdir to: %s\n", flagChdir)
 		}
 		if !flagColorize {
-			color.NoColor = true
+			color.Disable()
 		}
 	})
 
