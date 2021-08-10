@@ -3,6 +3,7 @@ package cmd
 import (
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/spf13/cobra"
 )
@@ -17,16 +18,27 @@ func searchContainer(path string, autostart bool) string {
 	// root, there will be no container file to speed up further usage later.
 	containerFile := filepath.Join(path, ".git", CACHED_CONTAINER_FILE)
 
-	container, err := os.ReadFile(containerFile)
-	if err == nil {
-		out := mustOutput("docker", "container", "ls", "-qa", "-f", "id="+string(container))
-		if out[0] != "" {
-			vprintf("container found: %v\n", out[0])
-			if autostart {
-				// Restart the container in case it's not running.
-				mustRun("docker", "container", "start", out[0])
+	if containerBytes, err := os.ReadFile(containerFile); err == nil {
+		container := strings.TrimSpace(string(containerBytes))
+
+		// We want to check whether the container still exists and optionally
+		// start it with the smallest possible amount of docker commands, so
+		// that execution is as fast as possible (for libdragon make).
+		// In fact, the file might be stale (eg: the container has been purged).
+		if autostart {
+			// In case of autostart, we just run "docker start". If that fails,
+			// we assume that the container does not exist anymore (stale file).
+			if err := run("docker", "container", "start", container); err == nil {
+				vprintf("container found: %v\n", container)
+				return container
 			}
-			return out[0]
+		} else {
+			// If no autostart was requested, we use "docker container ls" to
+			// check whether it still exists.
+			if out := mustOutput("docker", "container", "ls", "-qa", "-f", "id="+container); out[0] != "" {
+				vprintf("container found: %v\n", out[0])
+				return out[0]
+			}
 		}
 	}
 
@@ -59,7 +71,7 @@ func searchContainer(path string, autostart bool) string {
 
 	// Try writing the container file. This will fail if this is not a git
 	// root because the .git subdir will not exist. Ignore the error.
-	os.WriteFile(containerFile, []byte(out[0]), 0666)
+	os.WriteFile(containerFile, []byte(out[0]+"\n"), 0666)
 
 	return out[0]
 }
