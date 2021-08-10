@@ -13,7 +13,9 @@ func searchContainer(path string, autostart bool) string {
 	// Check whether there is a container file. This is the fastest and safest
 	// way to find the container associated with this directory, but only works
 	// for directories which are git roots.
-	containerFile := filepath.Join(path, ".git", CONTAINER_FILE)
+	// Otherwise, if we are requested to mount in a directory which is not a repo
+	// root, there will be no container file to speed up further usage later.
+	containerFile := filepath.Join(path, ".git", CACHED_CONTAINER_FILE)
 
 	container, err := os.ReadFile(containerFile)
 	if err == nil {
@@ -63,7 +65,12 @@ func searchContainer(path string, autostart bool) string {
 }
 
 func doStart(cmd *cobra.Command, args []string) error {
-	path := findGitRoot(".")
+	path := findGitRoot()
+	if path == "" {
+		// If we're not in a git repository, create a container that
+		// mounts the current directory.
+		path = "."
+	}
 	searchContainer(path, true)
 	return nil
 }

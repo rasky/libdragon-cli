@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"os"
 	"path/filepath"
 	"strings"
 
@@ -10,58 +9,35 @@ import (
 )
 
 var (
+	flagUpdateDockerImage   string
 	flagUpdateLibdragonPath string
+	flagUpdateWhat          string
 )
-
-// findLibdragon searches for the libdragon vendored directory in the specified
-// git repository. In case of success, it returns the path of the directory within
-// the repo, and a boolean indicating whether the vendoring is being done via
-// submodules (the alternative being subtrees).
-func findLibdragon(repoRoot string) (string, bool) {
-	// Check if we're using submodules
-	if path, err := getOutput("git", "config",
-		"--file", filepath.Join(repoRoot, ".gitmodules"),
-		"--get", "submodule."+LIBDRAGON_SUBMODULE+".path"); err == nil && path[0] != "" {
-		return path[0], true
-	}
-
-	// If we are using subtree, grep the logs to find the path
-	logs := mustOutput("git", "log", "--grep", "git-subtree-dir:", "--format=tformat:%b")
-	for _, logline := range logs {
-		if strings.HasPrefix(logline, "git-subtree-dir:") && strings.HasSuffix(logline, "libdragon") {
-			fields := strings.SplitN(logline, ":", 2)
-			return strings.TrimSpace(fields[1]), false
-		}
-	}
-
-	// Not found
-	return "", false
-}
 
 // updateToolchain updates the docker toolchain image that will be used to compile
 // libdragon. It is a wrapper over "docker pull".
-func updateToolchain(libdragonPath string) {
-	// Check if there's a reference to the needed toolchain in libdragon, otherwise
-	// assume the latest is fine (hopefully...)
-	image := DOCKER_IMAGE
-	if imagebytes, err := os.ReadFile(filepath.Join(libdragonPath, "tools", ".docker-toolchain")); err == nil {
-		image = strings.TrimSpace(string(imagebytes))
+func updateToolchain() {
+	image := flagUpdateDockerImage
+	if image == "" {
+		image = findDockerImage()
 	}
 
 	// Pull the image
-	color.Greenp("\nUpdating toolchain...\n")
 	spawn("docker", "pull", image)
 }
 
-func doUpdate(cmd *cobra.Command, args []string) error {
-	repoRoot := findGitRoot(".")
+// updateLibdragon updates the vendored libdragon copy within the repository.
+// It works with both the submodule and subtree vendoring strategy.
+func updateLibdragon() {
+	repoRoot := mustFindGitRoot()
 
 	// Repo-relative path where libdragon is vendored
 	var libdragonPath string
 	var useSubmodules bool
 
 	if flagUpdateLibdragonPath == "" {
-		libdragonPath, useSubmodules = findLibdragon(repoRoot)
+		// If the directory was not specified on a command line, search for it.
+		libdragonPath, useSubmodules = findLibdragon()
 		if libdragonPath == "" {
 			fatal("cannot find libdragon in this repository\nuse --directory to specify the location\n")
 		}
@@ -99,23 +75,47 @@ func doUpdate(cmd *cobra.Command, args []string) error {
 	}
 
 	// Update libdragon
-	color.Greenp("Updating libdragon...\n")
 	if useSubmodules {
 		spawn("git", "submodule", "update", "--remote", "--merge", filepath.Join(repoRoot, libdragonPath))
 	} else {
 		spawn("git", "subtree", "pull", "--prefix", libdragonPath, LIBDRAGON_GIT, LIBDRAGON_BRANCH, "--squash")
 	}
 
-	updateToolchain(libdragonPath)
+}
+
+func doUpdate(cmd *cobra.Command, args []string) error {
+	what := "libdragon\000toolchain"
+	if len(args) > 0 {
+		what = strings.Join(args, "\000")
+	}
+
+	// First update libdragon, as that might change the required toolchain.
+	if strings.Contains(what, "libdragon") {
+		color.Greenp("Updating libdragon...\n")
+		updateLibdragon()
+	}
+
+	// Update the toolchain, if requested
+	if strings.Contains(what, "toolchain") {
+		color.Greenp("Updating toolchain...\n")
+		updateToolchain()
+	}
 
 	return nil
 }
 
 var cmdUpdate = &cobra.Command{
-	Use:   "update",
+	Use:   "update [what]",
 	Short: "Update libdragon in the current repository, and its toolchain.",
+	Long: `This command can be used to perform updates on the vendored libdragon version, 
+the toolchain, or both. By default, it updates everything. Otherwise, you can specify
+as argument a single item to update, which can be either "libdragon" or "docker"`,
 	Example: `  libdragon update
-	-- update libdragon`,
+	-- update libdragon and toolchain
+  libdragon update toolchain
+      -- update toolchain only`,
+	ValidArgs:    []string{"libdragon", "toolchain"},
+	Args:         cobra.OnlyValidArgs,
 	RunE:         doUpdate,
 	SilenceUsage: true,
 }

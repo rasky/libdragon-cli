@@ -20,17 +20,12 @@ var (
 var skeleton embed.FS
 
 func doInit(cmd *cobra.Command, args []string) error {
-
-	// Check if we're inside a git repository
-	rootdir, err := getOutput("git", "rev-parse", "--show-toplevel")
-	if err != nil {
-		fatal("error: this command must be run within a git repository")
-	}
+	rootdir := mustFindGitRoot()
 
 	// Extract the project skeleton
-	progress("Create project skeleton...\n")
+	progress("Creating project skeleton...\n")
 	skfs, _ := fs.Sub(skeleton, "prj-skeleton")
-	err = fs.WalkDir(skfs, ".", func(path string, d fs.DirEntry, err error) error {
+	err := fs.WalkDir(skfs, ".", func(path string, d fs.DirEntry, err error) error {
 		if err == nil {
 			if d.IsDir() {
 				vprintf("creating: %s\n", path)
@@ -53,7 +48,7 @@ func doInit(cmd *cobra.Command, args []string) error {
 	}
 
 	// Create a submodule for libdragon
-	progress("Download libdragon...\n")
+	progress("Downloading libdragon...\n")
 
 	if flagInitUseSubmodules {
 		spawn("git", "submodule", "add", "--force",
@@ -66,7 +61,7 @@ func doInit(cmd *cobra.Command, args []string) error {
 		prefix := "libdragon"
 		abspwd, err := filepath.Abs(".")
 		if err == nil {
-			reldir, err := filepath.Rel(rootdir[0], abspwd)
+			reldir, err := filepath.Rel(rootdir, abspwd)
 			if err == nil {
 				prefix = path.Join(filepath.ToSlash(reldir), prefix)
 			}
@@ -80,10 +75,11 @@ func doInit(cmd *cobra.Command, args []string) error {
 		}
 
 		// Add the subtree
-		spawn("git", "-C", rootdir[0], "subtree", "add", "--prefix", prefix, LIBDRAGON_GIT, LIBDRAGON_BRANCH, "--squash")
+		spawn("git", "-C", rootdir, "subtree", "add", "--prefix", prefix, LIBDRAGON_GIT, LIBDRAGON_BRANCH, "--squash")
 	}
 
-	updateToolchain("libdragon")
+	progress("Downloading toolchain...\n")
+	updateToolchain()
 
 	return nil
 }

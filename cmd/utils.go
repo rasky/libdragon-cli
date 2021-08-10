@@ -131,18 +131,93 @@ func isDir(path string) bool {
 	return err == nil && fi.IsDir()
 }
 
-// findGitRoot checks whether path is part of a git repo; if so, returns its
-// root, otherwise aborts via fatal
-func findGitRoot(path string) string {
-	// FIXME: we could rewrite this without relying on git in PATH for Windows
-	// users, and simply go through parent folders looking for ".git" directory.
-	rootdir1, err := getOutput("git", "-C", path, "rev-parse", "--show-toplevel")
-	if err != nil {
+var (
+	cachedGitRoot     string
+	cachedGitRootOnce bool
+
+	cachedLibdragonPath          string
+	cachedLibdragonPathSubmodule bool
+	cachedLibdragonPathOnce      bool
+)
+
+// findGitRoot checks whether the current directory is part of a git repo; if so,
+// returns its root, otherwise returns empty string.
+func findGitRoot() string {
+	if !cachedGitRootOnce {
+		cachedGitRootOnce = true
+
+		rootdir1, err := getOutput("git", "rev-parse", "--show-toplevel")
+		if err == nil {
+			cachedGitRoot, err = filepath.Abs(rootdir1[0])
+			if err != nil {
+				fatal("error getting absolute path: %v", err)
+			}
+		}
+	}
+
+	return cachedGitRoot
+}
+
+// mustFindGitRoot is like findGitRoot, but aborts with fatal if no git repository
+// is found.
+func mustFindGitRoot() string {
+	path := findGitRoot()
+	if path == "" {
 		fatal("error: this command must be run from a git repository\n")
 	}
-	path, err = filepath.Abs(rootdir1[0])
-	if err != nil {
-		fatal("error getting absolute path: %v", err)
-	}
 	return path
+}
+
+// findLibdragon searches for the libdragon vendored directory in the git repo
+// which contains teh current directory. In case of success, it returns the path
+// of the directory within the repo, and a boolean indicating whether the
+// vendoring is being done via submodules (the alternative being subtrees).
+func findLibdragon() (string, bool) {
+	if !cachedLibdragonPathOnce {
+		cachedLibdragonPathOnce = true
+
+		repoRoot := mustFindGitRoot()
+
+		// Check if we're using submodules
+		if path, err := getOutput("git", "config",
+			"--file", filepath.Join(repoRoot, ".gitmodules"),
+			"--get", "submodule."+LIBDRAGON_SUBMODULE+".path"); err == nil && path[0] != "" {
+
+			cachedLibdragonPath = path[0]
+			cachedLibdragonPathSubmodule = true
+		} else {
+			// If we are using subtree, grep the logs to find the path
+			logs := mustOutput("git", "log", "--grep", "git-subtree-dir:", "--format=tformat:%b")
+			for _, logline := range logs {
+				if strings.HasPrefix(logline, "git-subtree-dir:") && strings.HasSuffix(logline, "libdragon") {
+					fields := strings.SplitN(logline, ":", 2)
+
+					cachedLibdragonPath = strings.TrimSpace(fields[1])
+					cachedLibdragonPathSubmodule = false
+					break
+				}
+			}
+		}
+	}
+
+	return cachedLibdragonPath, cachedLibdragonPathSubmodule
+}
+
+func findDockerImage() string {
+	libdragonPath, _ := findLibdragon()
+	if libdragonPath != "" {
+		// Check if there's a reference to the needed toolchain in libdragon
+		if imagebytes, err := os.ReadFile(filepath.Join(libdragonPath, "tools", ".docker-toolchain")); err == nil {
+			return strings.TrimSpace(string(imagebytes))
+		}
+	}
+
+	repoRoot := findGitRoot()
+	if repoRoot != "" {
+		if imagebytes, err := os.ReadFile(filepath.Join(repoRoot, ".git", CACHED_IMAGE_FILE)); err == nil {
+			return strings.TrimSpace(string(imagebytes))
+		}
+	}
+
+	return DOCKER_IMAGE
 }

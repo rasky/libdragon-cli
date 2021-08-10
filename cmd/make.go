@@ -8,18 +8,23 @@ import (
 )
 
 func doMake(cmd *cobra.Command, args []string) error {
-	root := findGitRoot(".")
+	root := findGitRoot()
+	if root == "" {
+		root = "."
+	}
 	container := searchContainer(root, true)
 
 	// Reconstruct the relative path within the git root, so that it can be
 	// set as working directory in the docker container. If this fails,
 	// just avoid setting a working directory and hope for the best.
 	workdir := VOLUME_ROOT
-	abspwd, err := filepath.Abs(".")
-	if err == nil {
-		reldir, err := filepath.Rel(root, abspwd)
+	if root != "." {
+		abspwd, err := filepath.Abs(".")
 		if err == nil {
-			workdir = path.Join(workdir, filepath.ToSlash(reldir))
+			reldir, err := filepath.Rel(root, abspwd)
+			if err == nil {
+				workdir = path.Join(workdir, filepath.ToSlash(reldir))
+			}
 		}
 	}
 

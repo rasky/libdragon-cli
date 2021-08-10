@@ -8,13 +8,18 @@ import (
 )
 
 func doStop(cmd *cobra.Command, args []string) error {
-	path := findGitRoot(".")
+	path := findGitRoot()
+	if path == "" {
+		// Same logic of doStart
+		path = "."
+	}
+
 	out := searchContainer(path, false)
 	if out != "" {
 		mustRun("docker", "container", "rm", "--force", out)
 
 		// Remove the container file if it exists
-		os.Remove(filepath.Join(path, ".git", CONTAINER_FILE))
+		os.Remove(filepath.Join(path, ".git", CACHED_CONTAINER_FILE))
 	}
 	return nil
 }

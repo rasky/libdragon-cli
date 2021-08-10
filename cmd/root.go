@@ -9,12 +9,13 @@ import (
 )
 
 var (
-	DOCKER_IMAGE        = "anacierdem/libdragon"
-	CONTAINER_FILE      = "libdragon-docker-container"
-	VOLUME_ROOT         = "/app"
-	LIBDRAGON_GIT       = "https://github.com/DragonMinded/libdragon"
-	LIBDRAGON_BRANCH    = "trunk"
-	LIBDRAGON_SUBMODULE = "libdragon"
+	DOCKER_IMAGE          = "anacierdem/libdragon"
+	CACHED_CONTAINER_FILE = "libdragon-docker-container"
+	CACHED_IMAGE_FILE     = "libdragon-docker-image"
+	VOLUME_ROOT           = "/app"
+	LIBDRAGON_GIT         = "https://github.com/DragonMinded/libdragon"
+	LIBDRAGON_BRANCH      = "trunk"
+	LIBDRAGON_SUBMODULE   = "libdragon"
 )
 
 var (
