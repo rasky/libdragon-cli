@@ -12,6 +12,12 @@ Main features:
    for different projects, if required so.
  * Update libdragon and toolchain.
 
+### Installation (binary)
+
+Binary releases coming soon (stay tuned). For now, see below installation from
+source.
+
+
 ### Quick sheet
 
  1. Start from an empty git repository (`git init`).
@@ -41,4 +47,17 @@ cycle. You won't be able to manage libdragon vendoring through the tool, though.
 libdragon-cli uses the official libdragon Docker toolchain. If you want to
 switch to your own toolchain, use `libdragon update toolchain --image user/image:tag`
 to specify a Docker image in Docker Hub format.
+
+
+### Building libdragon-cli from source
+
+You need Go 1.16 or later to build libdragon-cli. Once you have Go installed
+in your system, simply run:
+
+	$ git clone https://github.com/rasky/libdragon-cli
+	$ cd libdragon-cli
+	$ go build -o libdragon
+
+This will build a `libdragon` binary. Move it to a directory in your `$PATH`
+and you're done, there are no additional dependencies.
 
