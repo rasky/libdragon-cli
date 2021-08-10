@@ -16,7 +16,7 @@ jobs:
       - name: Checkout the repository
         uses: actions/checkout@v2
       - name: Generate build files
-        uses: rasky/go-cross-build@latest
+        uses: rasky/go-cross-build@master
         with:
             platforms: 'linux/amd64, darwin/amd64, windows/amd64'
             package: ''
