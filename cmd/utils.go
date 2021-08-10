@@ -203,7 +203,20 @@ func findLibdragon() (string, bool) {
 	return cachedLibdragonPath, cachedLibdragonPathSubmodule
 }
 
+// findDockerImage returns the docker image that should be used as toolchain.
 func findDockerImage() string {
+	// Check if there's a cached image file in the repository root. This is
+	// a local override requested by the user, so it wins over anything.
+	repoRoot := findGitRoot()
+	if repoRoot == "" {
+		repoRoot = "."
+	}
+	if imagebytes, err := os.ReadFile(filepath.Join(repoRoot, CACHED_IMAGE_FILE)); err == nil {
+		return strings.TrimSpace(string(imagebytes))
+	}
+
+	// The specific libdragon version being used might contain a reference to the
+	// docker toolchain image to use. Use that if available.
 	libdragonPath, _ := findLibdragon()
 	if libdragonPath != "" {
 		// Check if there's a reference to the needed toolchain in libdragon
@@ -212,12 +225,6 @@ func findDockerImage() string {
 		}
 	}
 
-	repoRoot := findGitRoot()
-	if repoRoot != "" {
-		if imagebytes, err := os.ReadFile(filepath.Join(repoRoot, ".git", CACHED_IMAGE_FILE)); err == nil {
-			return strings.TrimSpace(string(imagebytes))
-		}
-	}
-
+	// If anything else fails, fall back to the official image with a "latest" tag.
 	return DOCKER_IMAGE
 }

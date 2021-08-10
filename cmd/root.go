@@ -11,7 +11,7 @@ import (
 var (
 	DOCKER_IMAGE          = "anacierdem/libdragon"
 	CACHED_CONTAINER_FILE = "libdragon-docker-container"
-	CACHED_IMAGE_FILE     = "libdragon-docker-image"
+	CACHED_IMAGE_FILE     = ".libdragon-docker-image"
 	VOLUME_ROOT           = "/app"
 	LIBDRAGON_GIT         = "https://github.com/DragonMinded/libdragon"
 	LIBDRAGON_BRANCH      = "trunk"

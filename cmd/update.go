@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -17,13 +18,29 @@ var (
 // updateToolchain updates the docker toolchain image that will be used to compile
 // libdragon. It is a wrapper over "docker pull".
 func updateToolchain() {
-	image := flagUpdateDockerImage
-	if image == "" {
+	var image string
+
+	if flagUpdateDockerImage != "" {
+		image = flagUpdateDockerImage
+
+		// Persist the image name by creating a local file in the repo root.
+		// Users might want to commit this file to persist their custom
+		// toolchain selection
+		repoRoot := findGitRoot()
+		if repoRoot != "" {
+			repoRoot = "."
+		}
+
+		if err := os.WriteFile(filepath.Join(repoRoot, CACHED_IMAGE_FILE), []byte(image+"\n"), 0666); err != nil {
+			fatal("error persisting toolchain change: %v\n", err)
+		}
+	} else {
 		image = findDockerImage()
 	}
 
-	// Pull the image
+	// Pull the requested image
 	spawn("docker", "pull", image)
+
 }
 
 // updateLibdragon updates the vendored libdragon copy within the repository.
@@ -122,5 +139,6 @@ as argument a single item to update, which can be either "libdragon" or "docker"
 
 func init() {
 	cmdUpdate.Flags().StringVarP(&flagUpdateLibdragonPath, "directory", "d", "", "specify where libdragon is located (default: autodetect)")
+	cmdUpdate.Flags().StringVarP(&flagUpdateDockerImage, "image", "i", "", "specify the Docker image to use as a toolchain")
 	rootCmd.AddCommand(cmdUpdate)
 }
