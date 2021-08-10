@@ -22,6 +22,7 @@ jobs:
             package: ''
             name: 'libdragon'
             compress: 'true'
+            dest: 'dist'
             ldflags: '-s -w'
       - name: Upload build-artifacts
         uses: skx/github-action-publish-binaries@master
@@ -29,5 +30,4 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           args: "./dist/*.tar.gz"            
-          dest: 'dist'
   
