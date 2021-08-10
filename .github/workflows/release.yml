@@ -16,7 +16,7 @@ jobs:
       - name: Checkout the repository
         uses: actions/checkout@v2
       - name: Generate build files
-        uses: thatisuday/go-cross-build@v1
+        uses: rasky/go-cross-build@latest
         with:
             platforms: 'linux/amd64, darwin/amd64, windows/amd64'
             package: ''
