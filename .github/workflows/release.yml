@@ -29,5 +29,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          args: "./dist/*.tar.gz"            
+          args:
+            - "./dist/*.tar.gz"            
+            - "./dist/*.zip"
+
   
