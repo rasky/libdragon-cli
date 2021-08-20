@@ -22,7 +22,6 @@ source.
 
  1. Start from an empty git repository (`git init`).
  1. Run `libdragon init` to create the skeleton project.
- 1. Run `libdragon start` to start the docker container.
  1. Run `libdragon make` to build the first ROM.
  1. Hack away and enjoy!
 
@@ -32,15 +31,14 @@ source.
   * Can I use this tool on an existing libdragon project?
 
 Sure. Use `libdragon update toolchain` to download the toolchain, and then
-`libdragon start` / `libdragon make` / `libdragon stop` for your development
-cycle.
+`libdragon make` for your development cycle.
 
   * Can I use this tool for a project that doesn't use git?
 
 Sure, but you will not be able to manage libdragon vendoring wihtout git.
 Use `libdragon update toolchain` to download the toolchain, and then
-`libdragon start` / `libdragon make` / `libdragon stop` for your development
-cycle. You won't be able to manage libdragon vendoring through the tool, though.
+`libdragon make` for your development cycle. You won't be able to manage
+libdragon vendoring through the tool, though.
 
   * How can I use a different toolchain?
 
