@@ -141,10 +141,13 @@ var (
 )
 
 // findGitRoot checks whether the current directory is part of a git repo; if so,
-// returns its root, otherwise returns empty string.
-func findGitRoot() string {
+// returns its root, otherwise returns "." which is a good default for all
+// situations in which we want to optionally find the root of a repo but we are
+// unable to.
+func findGitRootOrCwd() string {
 	if !cachedGitRootOnce {
 		cachedGitRootOnce = true
+		cachedGitRoot = "."
 
 		rootdir1, err := getOutput("git", "rev-parse", "--show-toplevel")
 		if err == nil {
@@ -161,8 +164,16 @@ func findGitRoot() string {
 // mustFindGitRoot is like findGitRoot, but aborts with fatal if no git repository
 // is found.
 func mustFindGitRoot() string {
-	path := findGitRoot()
-	if path == "" {
+	path := findGitRootOrCwd()
+	if path == "." {
+		if _, err := exec.LookPath("git"); err != nil {
+			critical("error: this command requires Git\n")
+			if runtime.GOOS == "windows" || true {
+				fatal("Please download it from: https://git-scm.com/downloads\n")
+			} else {
+				fatal("Please install it with your favorite package manager")
+			}
+		}
 		fatal("error: this command must be run from a git repository\n")
 	}
 	return path
@@ -207,10 +218,7 @@ func findLibdragon() (string, bool) {
 func findDockerImage() string {
 	// Check if there's a cached image file in the repository root. This is
 	// a local override requested by the user, so it wins over anything.
-	repoRoot := findGitRoot()
-	if repoRoot == "" {
-		repoRoot = "."
-	}
+	repoRoot := findGitRootOrCwd()
 	if imagebytes, err := os.ReadFile(filepath.Join(repoRoot, CACHED_IMAGE_FILE)); err == nil {
 		return strings.TrimSpace(string(imagebytes))
 	}

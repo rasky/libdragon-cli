@@ -26,11 +26,7 @@ func updateToolchain() {
 		// Persist the image name by creating a local file in the repo root.
 		// Users might want to commit this file to persist their custom
 		// toolchain selection
-		repoRoot := findGitRoot()
-		if repoRoot != "" {
-			repoRoot = "."
-		}
-
+		repoRoot := findGitRootOrCwd()
 		if err := os.WriteFile(filepath.Join(repoRoot, CACHED_IMAGE_FILE), []byte(image+"\n"), 0666); err != nil {
 			fatal("error persisting toolchain change: %v\n", err)
 		}

@@ -77,12 +77,7 @@ func searchContainer(path string, autostart bool) string {
 }
 
 func doStart(cmd *cobra.Command, args []string) error {
-	path := findGitRoot()
-	if path == "" {
-		// If we're not in a git repository, create a container that
-		// mounts the current directory.
-		path = "."
-	}
+	path := findGitRootOrCwd()
 	searchContainer(path, true)
 	return nil
 }

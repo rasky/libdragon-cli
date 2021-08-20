@@ -8,12 +8,7 @@ import (
 )
 
 func doStop(cmd *cobra.Command, args []string) error {
-	path := findGitRoot()
-	if path == "" {
-		// Same logic of doStart
-		path = "."
-	}
-
+	path := findGitRootOrCwd()
 	out := searchContainer(path, false)
 	if out != "" {
 		mustRun("docker", "container", "rm", "--force", out)

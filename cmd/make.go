@@ -8,10 +8,7 @@ import (
 )
 
 func doMake(cmd *cobra.Command, args []string) error {
-	root := findGitRoot()
-	if root == "" {
-		root = "."
-	}
+	root := findGitRootOrCwd()
 	container := searchContainer(root, true)
 
 	// Reconstruct the relative path within the git root, so that it can be
