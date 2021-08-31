@@ -11,19 +11,42 @@ Main features:
    it doesn't pollute your PATH. You can have different toolchain versions
    for different projects, if required so.
  * Update libdragon and toolchain.
+ * Available on Windows, Mac and Linux.
 
 ### Installation (binary)
 
-Binary releases coming soon (stay tuned). For now, see below installation from
-source.
+Download the [latest binary release](https://github.com/rasky/libdragon-cli/releases/latest) from GitHub.
+`libdragon-cli` ships as a single binary available on Windows, Mac and Linux.
+Simply decompress the binary and put it in a directory in your PATH.
+
+Otherwise, see below for instructions to install from source.
 
 
 ### Quick sheet
 
  1. Start from an empty git repository (`git init`).
- 1. Run `libdragon init` to create the skeleton project.
- 1. Run `libdragon make` to build the first ROM.
+ 1. Run `libdragon init` to create the skeleton project, with a vendored copy
+    of lidbragon, and download an updated Docker toolchain image.
+ 1. Run `libdragon make` to build the first ROM. This will auto-start the docker
+    image and run `make` within it.
  1. Hack away and enjoy!
+
+### Other commands:
+
+ * `libdragon disasm`: show disassembly of the current project, You can pass 
+   a symbol as argument to request disassembly of a single function 
+   (eg: `libdragon disasm dfs_read`).
+ * `libdragon exec`: run a command within the Docker container. This can be
+   useful to manually execute libdragon tools. For instance: 
+   `libdragon exec makedfs <arguments>`
+ * `libdragon start` and `libdragon stop` help explicitly managing the
+   docker instance associated to the current git repository. In general,
+   `libdragon` will create one container per repository.
+ * `libdragon update` will update both the vendored copy of libdragon
+   (lastest version on Github) and the lastest toolchain (from Docker Hub).
+   You can update only either of the two with specific options (see the help).
+ * `libdragon init` can vendor libdragon with `git subtree` (default) or
+   with `git submodule`. If you prefer the latter, use `libdragon init --submodule`.
 
 
 ### FAQ
